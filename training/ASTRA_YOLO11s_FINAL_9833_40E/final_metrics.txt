@@ -1,0 +1,20 @@
+ASTRA YOLO11s FINAL 9833 METRICS
+=================================
+
+Precision: 0.7892
+Recall: 0.7514
+mAP50: 0.7997
+mAP50-95: 0.6439
+
+PER-CLASS RESULTS
+-----------------
+Car            P=0.859  R=0.899  mAP50=0.943  mAP50-95=0.826
+Bus            P=0.863  R=0.832  mAP50=0.899  mAP50-95=0.749
+Truck          P=0.787  R=0.781  mAP50=0.841  mAP50-95=0.683
+2-Wheeler      P=0.865  R=0.845  mAP50=0.920  mAP50-95=0.703
+3-Wheeler      P=0.880  R=0.862  mAP50=0.932  mAP50-95=0.783
+Tempo/Van      P=0.733  R=0.740  mAP50=0.775  mAP50-95=0.689
+Bicycle        P=0.729  R=0.730  mAP50=0.799  mAP50-95=0.629
+Other          P=0.393  R=0.158  mAP50=0.125  mAP50-95=0.086
+Ambulance      P=0.853  R=0.878  mAP50=0.904  mAP50-95=0.633
+Fire Truck     P=0.931  R=0.789  mAP50=0.859  mAP50-95=0.659

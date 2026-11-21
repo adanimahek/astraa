@@ -1,0 +1,464 @@
+============================================================
+ASTRA
+AI-BASED INTELLIGENT TRAFFIC MANAGEMENT SYSTEM
+PREPROCESSING REPORT
+============================================================
+
+
+1. OBJECTIVE
+------------------------------------------------------------
+
+The objective of preprocessing was to prepare a unified
+YOLO object-detection dataset for ASTRA.
+
+The final dataset contains normal traffic vehicles together
+with emergency vehicles required for emergency-priority
+traffic signal control.
+
+
+============================================================
+2. SOURCE DATASET - UVH-26
+============================================================
+
+Source:
+
+UVH-26
+
+Original training dataset:
+
+21,349 images
+
+Original vehicle categories:
+
+14 classes
+
+The original dataset was retained without modification.
+
+
+============================================================
+3. TRAFFIC DATASET SELECTION
+------------------------------------------------------------
+
+A controlled subset of 8,000 images was selected from the
+UVH-26 training dataset.
+
+Selection considered:
+
+- Vehicle class diversity
+- Traffic density
+- Representation of different vehicle types
+- Dataset coverage
+
+The purpose was to create a manageable dataset suitable
+for local YOLO training while retaining traffic diversity.
+
+Output:
+
+8,000 images
+
+
+============================================================
+4. TRAFFIC CLASS CONSOLIDATION
+------------------------------------------------------------
+
+The original UVH-26 vehicle categories were consolidated
+into ASTRA traffic classes.
+
+Final traffic classes:
+
+0  Car
+1  Bus
+2  Truck
+3  2-Wheeler
+4  3-Wheeler
+5  Tempo/Van
+6  Bicycle
+7  Other
+
+
+Examples of consolidation:
+
+Hatchback
+Sedan
+SUV
+MUV
+
+were grouped into:
+
+Car
+
+
+LCV
+
+was grouped into:
+
+Truck
+
+
+Mini-bus
+
+was grouped into:
+
+Bus
+
+
+Van
+Tempo-traveller
+
+were grouped into:
+
+Tempo/Van
+
+
+Three-wheeler
+
+was mapped to:
+
+3-Wheeler
+
+
+============================================================
+5. YOLO FORMAT PREPARATION
+============================================================
+
+The selected traffic images and annotations were prepared
+in YOLO object-detection format.
+
+Each annotation contains:
+
+class_id
+x_center
+y_center
+width
+height
+
+Coordinates are normalized between 0 and 1.
+
+
+============================================================
+6. TRAFFIC DATASET SPLIT
+============================================================
+
+The 8,000 traffic images were divided into:
+
+Training:
+6,400 images
+
+Validation:
+1,600 images
+
+
+Output:
+
+D:\ASTRA\dataset\traffic_8k
+
+
+============================================================
+7. TRAFFIC DATASET VALIDATION
+============================================================
+
+The processed traffic dataset was verified for:
+
+- Correct image count
+- Correct label count
+- YOLO annotation format
+- Valid class IDs
+- Valid normalized coordinates
+- Empty annotation files
+- Annotation errors
+
+Result:
+
+PASS
+
+
+============================================================
+8. EMERGENCY VEHICLE DATASET
+============================================================
+
+Source:
+
+Indian Emergency Vehicles dataset
+
+Original dataset:
+
+8,227 images
+
+Original classes:
+
+24
+
+
+============================================================
+9. EMERGENCY CLASS FILTERING
+============================================================
+
+Only the emergency vehicle classes required by ASTRA
+were retained.
+
+Selected source classes:
+
+ambulance
+fire_truck
+
+
+Source-to-ASTRA mapping:
+
+Source class 2
+ambulance
+        ↓
+ASTRA class 8
+Ambulance
+
+
+Source class 11
+fire_truck
+        ↓
+ASTRA class 9
+Fire Truck
+
+
+All other emergency-dataset classes were removed from the
+processed emergency labels.
+
+
+============================================================
+10. EMERGENCY IMAGE SELECTION
+============================================================
+
+A controlled emergency subset was created.
+
+Selected:
+
+875 Ambulance images
+125 Fire Truck images
+
+Total:
+
+1,000 emergency images
+
+
+The original emergency dataset was not modified.
+
+
+============================================================
+11. EMERGENCY ANNOTATION PROCESSING
+============================================================
+
+The emergency annotations were converted into the required
+YOLO object-detection format.
+
+Only the required emergency vehicle classes were retained.
+
+The processed emergency classes are:
+
+8  Ambulance
+9  Fire Truck
+
+
+============================================================
+12. EMERGENCY VISUAL QUALITY CHECK
+============================================================
+
+Random emergency images were visually inspected.
+
+40 sample images were reviewed.
+
+The review checked:
+
+- Correct emergency vehicle
+- Correct bounding box
+- Correct class label
+- Image readability
+- Missing annotations
+
+Result:
+
+40 samples created
+0 missing labels
+0 unreadable images
+
+
+============================================================
+13. DATASET MERGING
+============================================================
+
+The processed traffic and emergency datasets were merged.
+
+Traffic dataset:
+
+8,000 images
+
+Emergency dataset:
+
+1,000 images
+
+
+Final dataset:
+
+9,000 images
+
+
+Final split:
+
+Training:
+7,200 images
+
+Validation:
+1,800 images
+
+
+Output:
+
+D:\ASTRA\dataset\final_9k
+
+
+============================================================
+14. FINAL ASTRA CLASSES
+============================================================
+
+The final YOLO dataset contains 10 classes:
+
+0  Car
+1  Bus
+2  Truck
+3  2-Wheeler
+4  3-Wheeler
+5  Tempo/Van
+6  Bicycle
+7  Other
+8  Ambulance
+9  Fire Truck
+
+
+============================================================
+15. FINAL DATASET VALIDATION
+============================================================
+
+The final 9,000-image dataset was verified.
+
+Checks performed:
+
+- Image count
+- Label count
+- Missing labels
+- Empty labels
+- Invalid labels
+- Class IDs
+- Bounding-box coordinates
+- Emergency class presence
+
+
+Final verification result:
+
+PASS
+
+
+Verification output:
+
+Total images:
+9,000
+
+Total labels:
+9,000
+
+Missing labels:
+0
+
+Empty labels:
+0
+
+Invalid labels:
+0
+
+
+Emergency objects detected in annotations:
+
+Ambulance:
+936 objects
+
+Fire Truck:
+301 objects
+
+
+============================================================
+16. FINAL DATASET STATUS
+============================================================
+
+Dataset:
+
+FINAL 9K ASTRA DATASET
+
+Images:
+9,000
+
+Training:
+7,200
+
+Validation:
+1,800
+
+Classes:
+10
+
+Status:
+
+PREPROCESSING COMPLETE
+
+DATASET VERIFIED
+
+READY FOR YOLO TRAINING
+
+
+============================================================
+17. REPRODUCIBILITY
+============================================================
+
+The preprocessing process is reproducible using the Python
+scripts saved in:
+
+D:\ASTRA\ai
+
+Scripts:
+
+select8k.py
+prepare8k.py
+verify8k.py
+review8k.py
+select_emergency.py
+review_emergency.py
+merge_final9k.py
+verify_final9k.py
+
+Command history is documented separately in:
+
+ASTRA_COMMANDS.txt
+
+
+============================================================
+18. IMPORTANT PROJECT JUSTIFICATION
+============================================================
+
+The datasets were not directly used without processing.
+
+The preprocessing workflow included:
+
+1. Dataset inspection
+2. Controlled image selection
+3. Class consolidation
+4. Class mapping
+5. Annotation conversion
+6. Removal of irrelevant classes
+7. YOLO format preparation
+8. Train-validation splitting
+9. Visual annotation inspection
+10. Dataset merging
+11. Final annotation validation
+
+This produced a unified dataset specifically designed for
+ASTRA's 10-class vehicle detection requirement.
+
+
+============================================================
+END OF REPORT
+============================================================

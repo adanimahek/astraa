@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@theme {
+  --color-bg: #08101f; --color-panel: #0e1a33; --color-line: #1c2c4d; --color-brand: #2563eb; --color-accent: #38bdf8;
+}
+body { background: #08101f; font-family: system-ui, "Segoe UI", Roboto, sans-serif; color: #e2e8f0; }
+@keyframes drive { from { transform: translateX(-30vw); } to { transform: translateX(130vw); } }
+.streak { position: absolute; height: 5px; width: 90px; border-radius: 9999px; animation: drive linear infinite; }

@@ -1,0 +1,65 @@
+
+# =====================================
+# PYTHON VIRTUAL ENVIRONMENTS
+# =====================================
+.venv/
+.venv313/
+venv/
+env/
+
+# =====================================
+# PYTHON CACHE
+# =====================================
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# =====================================
+# ENVIRONMENT VARIABLES / SECRETS
+# =====================================
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# =====================================
+# NODE / FRONTEND DEPENDENCIES
+# =====================================
+node_modules/
+**/node_modules/
+
+# Frontend build output
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.next/
+backend/storage/results/
+dataset/
+
+# =====================================
+# TEMPORARY FILES
+# =====================================
+*.log
+*.tmp
+*.temp
+*.bak
+
+# =====================================
+# IDE / OPERATING SYSTEM
+# =====================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =====================================
+# TEST / BUILD OUTPUT
+# =====================================
+coverage/
+htmlcov/

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<routes>
+    <vType id="car" vClass="passenger" length="5" minGap="2.5" maxSpeed="13.89" accel="2.6" decel="4.5"/>
+    <vType id="astra_emergency_type" vClass="emergency" guiShape="emergency" color="1,0,0" length="5" minGap="2.5" maxSpeed="20" accel="3" decel="6"/>
+
+    <route id="west_straight" edges="west_in east_out"/>
+    <route id="west_left" edges="west_in north_out"/>
+    <route id="west_right" edges="west_in south_out"/>
+    <route id="east_straight" edges="east_in west_out"/>
+    <route id="east_left" edges="east_in south_out"/>
+    <route id="east_right" edges="east_in north_out"/>
+    <route id="south_straight" edges="south_in north_out"/>
+    <route id="south_left" edges="south_in west_out"/>
+    <route id="south_right" edges="south_in east_out"/>
+    <route id="north_straight" edges="north_in south_out"/>
+    <route id="north_left" edges="north_in east_out"/>
+    <route id="north_right" edges="north_in west_out"/>
+
+    <route id="emergency_north" edges="north_in south_out"/>
+    <route id="emergency_south" edges="south_in north_out"/>
+    <route id="emergency_east" edges="east_in west_out"/>
+    <route id="emergency_west" edges="west_in east_out"/>
+
+    <flow id="west_straight_flow" type="car" route="west_straight" begin="0" end="1800" period="12" departLane="best"/>
+    <flow id="west_left_flow" type="car" route="west_left" begin="0" end="1800" period="24" departLane="best"/>
+    <flow id="west_right_flow" type="car" route="west_right" begin="0" end="1800" period="24" departLane="best"/>
+    <flow id="east_straight_flow" type="car" route="east_straight" begin="0" end="1800" period="12" departLane="best"/>
+    <flow id="east_left_flow" type="car" route="east_left" begin="0" end="1800" period="24" departLane="best"/>
+    <flow id="east_right_flow" type="car" route="east_right" begin="0" end="1800" period="24" departLane="best"/>
+    <flow id="south_straight_flow" type="car" route="south_straight" begin="0" end="1800" period="12" departLane="best"/>
+    <flow id="south_left_flow" type="car" route="south_left" begin="0" end="1800" period="24" departLane="best"/>
+    <flow id="south_right_flow" type="car" route="south_right" begin="0" end="1800" period="24" departLane="best"/>
+    <flow id="north_straight_flow" type="car" route="north_straight" begin="0" end="1800" period="12" departLane="best"/>
+    <flow id="north_left_flow" type="car" route="north_left" begin="0" end="1800" period="24" departLane="best"/>
+    <flow id="north_right_flow" type="car" route="north_right" begin="0" end="1800" period="24" departLane="best"/>
+</routes>

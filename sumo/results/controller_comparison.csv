@@ -1,0 +1,3 @@
+controller,replications,arrived_vehicles,throughput_vehicles_per_minute,average_waiting_time_seconds,average_travel_time_seconds,average_queue_vehicles,queue_vehicle_seconds,co2_emissions_grams
+fixed_time,5,1200.0,30.0,15.323333333333334,70.67033333333333,7.058916666666667,16941.4,186407.57314563676
+q_learning,5,1200.0,30.0,5.75,59.5065,2.512,6028.8,163499.53350362647

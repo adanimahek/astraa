@@ -1,0 +1,370 @@
+============================================================
+ASTRA
+DATASET PREPROCESSING & VERIFICATION COMMANDS
+============================================================
+
+PROJECT ROOT
+------------------------------------------------------------
+D:\ASTRA
+
+
+VIRTUAL ENVIRONMENT
+------------------------------------------------------------
+
+Activate environment:
+
+D:\ASTRA\.venv\Scripts\activate
+
+
+============================================================
+1. DOWNLOAD UVH-26
+============================================================
+
+Command:
+
+hf download iisc-aim/UVH-26 --repo-type dataset --local-dir D:\ASTRA\dataset\raw\UVH-26
+
+
+============================================================
+2. CHECK DOWNLOADED DATASET
+============================================================
+
+Command:
+
+Get-ChildItem D:\ASTRA\dataset\raw\UVH-26
+
+
+============================================================
+3. SELECT 8,000 TRAFFIC IMAGES
+============================================================
+
+Command:
+
+python D:\ASTRA\ai\select8k.py
+
+Output:
+
+8,000 selected traffic images.
+
+Selection was based on:
+- Class diversity
+- Traffic density
+- Dataset coverage
+
+Original dataset was not modified.
+
+
+============================================================
+4. PREPARE 8K YOLO DATASET
+============================================================
+
+Command:
+
+python D:\ASTRA\ai\prepare8k.py
+
+Output:
+
+D:\ASTRA\dataset\traffic_8k
+
+Train images:
+6,400
+
+Validation images:
+1,600
+
+Classes:
+0 Car
+1 Bus
+2 Truck
+3 2-Wheeler
+4 3-Wheeler
+5 Tempo/Van
+6 Bicycle
+7 Other
+
+
+============================================================
+5. VERIFY 8K DATASET
+============================================================
+
+Command:
+
+python D:\ASTRA\ai\verify8k.py
+
+Checks:
+- Image count
+- Label count
+- YOLO label format
+- Class IDs
+- Bounding-box coordinates
+- Empty labels
+
+Result:
+
+PASS
+
+
+============================================================
+6. DOWNLOAD EMERGENCY DATASET
+============================================================
+
+Source:
+
+Indian Emergency Vehicles dataset
+
+Downloaded in YOLO11 format.
+
+Original dataset:
+
+8,227 images
+24 classes
+
+
+============================================================
+7. EXTRACT EMERGENCY DATASET
+============================================================
+
+Command:
+
+Expand-Archive -Path "D:\ASTRA\dataset\emergency_raw\Indian emergency vehicles.v1i.yolov11.zip" -DestinationPath "D:\ASTRA\dataset\emergency_raw\extracted" -Force
+
+
+============================================================
+8. INSPECT EMERGENCY CLASSES
+============================================================
+
+Command:
+
+Get-Content "D:\ASTRA\dataset\emergency_raw\extracted\data.yaml"
+
+Relevant source classes:
+
+2  = ambulance
+11 = fire_truck
+
+ASTRA classes:
+
+8 = Ambulance
+9 = Fire Truck
+
+
+============================================================
+9. EMERGENCY DATASET PREPROCESSING
+============================================================
+
+Script:
+
+D:\ASTRA\ai\select_emergency.py
+
+Command:
+
+python D:\ASTRA\ai\select_emergency.py
+
+Original emergency dataset:
+
+8,227 images
+24 classes
+
+Selected:
+
+875 Ambulance images
+125 Fire Truck images
+
+Total:
+
+1,000 emergency images
+
+Class mapping:
+
+2  -> 8 Ambulance
+11 -> 9 Fire Truck
+
+Other classes:
+
+Removed from processed emergency labels.
+
+Original emergency dataset was not modified.
+
+
+============================================================
+10. EMERGENCY VISUAL REVIEW
+============================================================
+
+Script:
+
+D:\ASTRA\ai\review_emergency.py
+
+Command:
+
+python D:\ASTRA\ai\review_emergency.py
+
+Visual samples:
+
+40 images
+
+Checked:
+- Ambulance bounding boxes
+- Fire Truck bounding boxes
+- Class labels
+- Image readability
+- Missing labels
+
+Result:
+
+40 samples created
+0 missing labels
+0 unreadable images
+
+
+============================================================
+11. MERGE TRAFFIC + EMERGENCY DATASETS
+============================================================
+
+Script:
+
+D:\ASTRA\ai\merge_final9k.py
+
+Command:
+
+python D:\ASTRA\ai\merge_final9k.py
+
+Traffic dataset:
+
+8,000 images
+
+Emergency dataset:
+
+1,000 images
+
+Final dataset:
+
+9,000 images
+
+
+Final split:
+
+Training:
+7,200 images
+
+Validation:
+1,800 images
+
+
+============================================================
+12. FINAL DATASET VERIFICATION
+============================================================
+
+Script:
+
+D:\ASTRA\ai\verify_final9k.py
+
+Command:
+
+python D:\ASTRA\ai\verify_final9k.py
+
+Checks:
+
+- Image count
+- Label count
+- Missing labels
+- Empty labels
+- Invalid labels
+- Class IDs
+- Bounding-box coordinates
+- Emergency classes
+
+Result:
+
+PASS
+
+Missing labels: 0
+Empty labels: 0
+Invalid labels: 0
+
+
+============================================================
+FINAL ASTRA DATASET
+============================================================
+
+Location:
+
+D:\ASTRA\dataset\final_9k
+
+
+Total images:
+
+9,000
+
+Training:
+
+7,200
+
+Validation:
+
+1,800
+
+
+FINAL 10 CLASSES:
+
+0  Car
+1  Bus
+2  Truck
+3  2-Wheeler
+4  3-Wheeler
+5  Tempo/Van
+6  Bicycle
+7  Other
+8  Ambulance
+9  Fire Truck
+
+
+============================================================
+REPORT FILES
+============================================================
+
+8K selection report:
+
+D:\ASTRA\dataset\selected_8k\selection_report.txt
+
+
+Emergency selection report:
+
+D:\ASTRA\dataset\emergency_2k\selection_report.txt
+
+
+Final merge report:
+
+D:\ASTRA\dataset\final_9k\merge_report.txt
+
+
+Final verification report:
+
+D:\ASTRA\dataset\final_9k\verification_report.txt
+
+
+============================================================
+PYTHON SCRIPTS
+============================================================
+
+D:\ASTRA\ai\select8k.py
+D:\ASTRA\ai\prepare8k.py
+D:\ASTRA\ai\verify8k.py
+D:\ASTRA\ai\review8k.py
+D:\ASTRA\ai\select_emergency.py
+D:\ASTRA\ai\review_emergency.py
+D:\ASTRA\ai\merge_final9k.py
+D:\ASTRA\ai\verify_final9k.py
+
+
+============================================================
+STATUS
+============================================================
+
+DATASET PREPROCESSING: COMPLETE
+
+DATASET MERGING: COMPLETE
+
+DATASET VERIFICATION: PASS
+
+READY FOR YOLO TRAINING
+============================================================
