@@ -5,7 +5,7 @@ import { api } from './api.js'
 import { SimProvider } from './SimContext.jsx'
 import { DetectProvider } from './DetectContext.jsx'
 
-const NAV = [['/', '🏠', 'Dashboard'], ['/input', '📥', 'Traffic Input'], ['/detection', '🎯', 'Vehicle Detection'], ['/signal', '🚦', 'AI Signal Control'], ['/emergency', '🚑', 'Emergency Priority'], ['/sumo-manual', '🛣️', 'Manual SUMO'], ['/reports', '📄', 'Reports'], ['/live-feed', '📹', 'Live Feed']]
+const NAV = [['/', '🏠', 'Dashboard'], ['/input', '📥', 'Traffic Input'], ['/detection', '🎯', 'Vehicle Detection'], ['/signal', '🚦', 'AI Signal Control'], ['/emergency', '🚑', 'Emergency Priority'], ['/sumo-manual', '🛣️', 'Manual SUMO'], ['/reports', '📄', 'Reports'], ['/live-feed', '📹', 'Live Feed'], ['/violations', '🚨', 'Violations'], ['/challans', '🧾', 'E-Challans']]
 // const SOON = [['🛣️', 'SUMO Simulation'], ['🧪', 'Scenario Testing'], ['📈', 'Analytics'], ['⚙️', 'Settings']]
 
 export default function Layout() {

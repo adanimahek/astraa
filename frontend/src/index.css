@@ -5,3 +5,4 @@
 body { background: #08101f; font-family: system-ui, "Segoe UI", Roboto, sans-serif; color: #e2e8f0; }
 @keyframes drive { from { transform: translateX(-30vw); } to { transform: translateX(130vw); } }
 .streak { position: absolute; height: 5px; width: 90px; border-radius: 9999px; animation: drive linear infinite; }
+@media print { body * { visibility: hidden; } .receipt, .receipt * { visibility: visible; } .receipt { position: absolute; left: 0; top: 0; } .no-print { display: none; } }

@@ -3,13 +3,16 @@ import bcrypt
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 from .config import settings
 from .db import users
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 bearer = HTTPBearer(auto_error=False)
-ROLES = ("Administrator", "Traffic Operator")
+ROLES = ("Administrator", "Traffic Operator", "Vehicle Owner")
+STAFF_ROLES = ("Administrator", "Traffic Operator")
+OWNER_ROLE = "Vehicle Owner"
 
 def hash_pw(p: str) -> str:
     return bcrypt.hashpw(p.encode(), bcrypt.gensalt()).decode()
@@ -22,9 +25,13 @@ def make_token(email: str) -> str:
     return jwt.encode({"sub": email, "exp": exp}, settings.jwt_secret, algorithm="HS256")
 
 def public(u: dict) -> dict:
-    return {"name": u["name"], "email": u["email"], "role": u["role"]}
+    out = {"name": u["name"], "email": u["email"], "role": u["role"]}
+    if u.get("owner_id"):
+        out["owner_id"] = u["owner_id"]
+    return out
 
-def current_user(cred: HTTPAuthorizationCredentials = Depends(bearer)) -> dict:
+def any_user(cred: HTTPAuthorizationCredentials = Depends(bearer)) -> dict:
+    """Any authenticated user, including Vehicle Owners."""
     if not cred:
         raise HTTPException(401, "Not authenticated")
     try:
@@ -34,6 +41,21 @@ def current_user(cred: HTTPAuthorizationCredentials = Depends(bearer)) -> dict:
     u = users.find_one({"email": email})
     if not u:
         raise HTTPException(401, "User not found")
+    return u
+
+def current_user(u: dict = Depends(any_user)) -> dict:
+    """Staff only (Administrator / Traffic Operator).
+
+    Existing operator endpoints depend on this, so Vehicle Owners can never
+    reach detection, simulation or live-feed features.
+    """
+    if u["role"] not in STAFF_ROLES:
+        raise HTTPException(403, "Staff access required")
+    return u
+
+def owner_only(u: dict = Depends(any_user)) -> dict:
+    if u["role"] != OWNER_ROLE or not u.get("owner_id"):
+        raise HTTPException(403, "Vehicle owner access required")
     return u
 
 def admin_only(u: dict = Depends(current_user)) -> dict:
@@ -56,6 +78,7 @@ class UserIn(BaseModel):
     email: EmailStr
     password: str
     role: str = "Traffic Operator"
+    owner_id: Optional[str] = None  # required for the Vehicle Owner role
 
 @router.post("/login")
 def login(body: LoginIn):
@@ -65,7 +88,7 @@ def login(body: LoginIn):
     return {"token": make_token(u["email"]), "user": public(u)}
 
 @router.get("/me")
-def me(u: dict = Depends(current_user)):
+def me(u: dict = Depends(any_user)):
     return public(u)
 
 @router.post("/users")
@@ -76,6 +99,13 @@ def create_user(body: UserIn, _: dict = Depends(admin_only)):
         raise HTTPException(409, "Email already exists")
     doc = {"name": body.name, "email": body.email.lower(), "role": body.role,
            "password": hash_pw(body.password), "created_at": datetime.now(timezone.utc)}
+    if body.role == OWNER_ROLE:
+        from .db import owners
+        if not body.owner_id or not owners.find_one({"owner_id": body.owner_id}):
+            raise HTTPException(400, "Vehicle Owner accounts must reference an existing owner_id")
+        if users.find_one({"owner_id": body.owner_id}):
+            raise HTTPException(409, "This owner already has a login")
+        doc["owner_id"] = body.owner_id
     users.insert_one(doc)
     return public(doc)
 

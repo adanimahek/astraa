@@ -12,7 +12,7 @@ export default function Login() {
     e.preventDefault(); setError('')
     if (!email || !password) return setError('Please enter email and password')
     setLoading(true)
-    try { await login(email, password); nav('/', { replace: true }) } catch (err) { setError(err.message) } finally { setLoading(false) }
+    try { const u = await login(email, password); nav(u.role === 'Vehicle Owner' ? '/owner' : '/', { replace: true }) } catch (err) { setError(err.message) } finally { setLoading(false) }
   }
   const input = 'w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2.5 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent'
   return (
@@ -35,7 +35,7 @@ export default function Login() {
           </div>
           {error && <p role="alert" className="text-sm text-red-400 mt-3">{error}</p>}
           <button disabled={loading} className="w-full mt-6 bg-gradient-to-r from-brand to-violet-500 hover:opacity-90 disabled:opacity-60 font-bold rounded-lg py-2.5">{loading ? 'Signing in…' : 'Login'}</button>
-          <p className="text-xs text-slate-400 mt-4 text-center">Authorized users only. Accounts are created by the administrator.</p>
+          <p className="text-xs text-slate-400 mt-4 text-center">Authorized users and registered vehicle owners only. Accounts are created by the administrator.</p>
         </form>
       </div>
     </div>

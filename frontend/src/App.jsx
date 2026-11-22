@@ -9,9 +9,24 @@ import Signal from './pages/Signal.jsx'
 import Reports from './pages/Reports.jsx'
 import LiveFeed from './pages/LiveFeed.jsx'
 import ManualSumo from './pages/ManualSumo.jsx'
+import Violations from './pages/Violations.jsx'
+import Challans from './pages/Challans.jsx'
+import OwnerDashboard from './pages/OwnerDashboard.jsx'
+import OwnerLayout from './OwnerLayout.jsx'
 import { getUser } from './auth.js'
 
-const Protected = ({ children }) => (getUser() ? children : <Navigate to="/login" replace />)
+const OWNER = 'Vehicle Owner'
+// Staff pages: Administrator / Traffic Operator. Owners are sent to their portal.
+const Protected = ({ children }) => {
+  const u = getUser()
+  if (!u) return <Navigate to="/login" replace />
+  return u.role === OWNER ? <Navigate to="/owner" replace /> : children
+}
+const OwnerOnly = ({ children }) => {
+  const u = getUser()
+  if (!u) return <Navigate to="/login" replace />
+  return u.role === OWNER ? children : <Navigate to="/" replace />
+}
 
 export default function App() {
   return (
@@ -26,6 +41,11 @@ export default function App() {
         <Route path="/reports" element={<Reports />} />
         <Route path="/live-feed" element={<LiveFeed />} />
         <Route path="/sumo-manual" element={<ManualSumo />} />
+        <Route path="/violations" element={<Violations />} />
+        <Route path="/challans" element={<Challans />} />
+      </Route>
+      <Route element={<OwnerOnly><OwnerLayout /></OwnerOnly>}>
+        <Route path="/owner" element={<OwnerDashboard />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

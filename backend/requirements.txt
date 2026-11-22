@@ -8,3 +8,5 @@ bcrypt
 email-validator
 ultralytics
 opencv-python
+lap
+easyocr

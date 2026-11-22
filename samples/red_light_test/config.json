@@ -1,0 +1,20 @@
+{
+  "coordinates": "normalized",
+  "recording_started_at": null,
+  "zones": [
+    {
+      "name": "north",
+      "stop_line": [[0.0, 0.55], [1.0, 0.55]],
+      "before_point": [0.5, 0.95],
+      "margin": 0.01,
+      "signal": {
+        "mode": "timeline",
+        "intervals": [
+          {"start": 0, "end": 10, "state": "green"},
+          {"start": 10, "end": 13, "state": "yellow"},
+          {"start": 13, "end": 31, "state": "red"}
+        ]
+      }
+    }
+  ]
+}

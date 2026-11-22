@@ -39,6 +39,7 @@ frontend/build/
 frontend/.vite/
 frontend/.next/
 backend/storage/results/
+backend/storage/evidence/
 dataset/
 
 # =====================================
