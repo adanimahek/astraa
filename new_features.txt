@@ -1,0 +1,516 @@
+=====================================================================
+ ASTRA – AI-BASED E-CHALLAN AND PENALTY MANAGEMENT MODULE
+ User guide: what it does, how it works and how to use it step by step
+=====================================================================
+
+CONTENTS
+  1. What the module does (in one minute)
+  2. The complete workflow (how everything connects)
+  3. Who can do what (roles)
+  4. One-time setup
+  5. Step-by-step: detect violations from an uploaded video
+  6. Step-by-step: detect violations from SUMO / TraCI
+  7. Step-by-step: review uncertain number plates
+  8. Step-by-step: handle unregistered vehicles
+  9. Step-by-step: admin E-Challan dashboard (fines, cancel, overdue)
+ 10. Step-by-step: vehicle owner portal (view, evidence, pay, receipt)
+ 11. Full demo script (start to finish in about 10 minutes)
+ 12. Status reference
+ 13. Configuration settings
+ 14. Troubleshooting
+ 15. Where the code lives
+
+
+---------------------------------------------------------------------
+1. WHAT THE MODULE DOES
+---------------------------------------------------------------------
+ASTRA can now catch vehicles that jump a red light, read their number
+plate, find the registered owner, issue an e-challan (fine), notify the
+owner, and let the owner pay it (simulated payment) – with automatic
+overdue tracking.
+
+  FR10  Red-light violation detection  (uploaded videos + SUMO simulation)
+  FR11  Number-plate recognition       (pretrained plate detector + OCR)
+  FR12  Vehicle-owner lookup           (MongoDB owner/vehicle registry)
+  FR13  Automatic challan generation   (unique, no duplicates, fines configurable)
+  FR14  Notifications and dashboards   (admin dashboard + owner portal)
+  FR15  Overdue and payment management (simulated payments, receipts)
+
+Nothing in the existing system was replaced: the YOLO11 vehicle model,
+SUMO, Q-learning, live feed, detection and login all keep working as before.
+
+
+---------------------------------------------------------------------
+2. THE COMPLETE WORKFLOW
+---------------------------------------------------------------------
+
+   VIDEO UPLOAD                         SUMO SIMULATION
+   (operator gives stop line +          (TraCI reads real signal state
+    signal timeline)                     of every vehicle's lane)
+          |                                      |
+          v                                      v
+   +--------------------------------------------------------+
+   | STEP A  DETECT  (FR10)                                 |
+   | YOLO11 (your model) + ByteTrack give each vehicle a    |
+   | tracking ID. A vehicle is a violator only if:          |
+   |   - it was BEHIND the stop line while the light was RED|
+   |   - and it CROSSED the line while still RED            |
+   | Evidence images + timestamps are saved.                |
+   +--------------------------------------------------------+
+          |
+          v
+   +--------------------------------------------------------+
+   | STEP B  READ PLATE  (FR11)                             |
+   | Video:  plate detector finds the plate -> EasyOCR reads|
+   |         it -> checked against Indian plate formats.    |
+   | SUMO:   no camera exists, so each simulated vehicle is |
+   |         given a plate from the demo registry.          |
+   +--------------------------------------------------------+
+          |                                   |
+     confident & valid                 uncertain / invalid / no plate
+          |                                   |
+          |                                   v
+          |                    +-------------------------------+
+          |                    | NEEDS REVIEW (manual)          |
+          |                    | Operator looks at evidence and |
+          |                    | types the correct plate, or    |
+          |                    | rejects the violation.         |
+          |                    +-------------------------------+
+          |                                   |
+          v                                   v
+   +--------------------------------------------------------+
+   | STEP C  OWNER LOOKUP  (FR12)                           |
+   | Plate is matched against the vehicles collection in    |
+   | MongoDB Atlas -> owner record.                         |
+   +--------------------------------------------------------+
+          |                                   |
+       owner found                      not in registry
+          |                                   v
+          |                        status = UNREGISTERED
+          |                        (admin can add the vehicle,
+          |                         then "Retry owner lookup")
+          v
+   +--------------------------------------------------------+
+   | STEP D  ISSUE CHALLAN  (FR13)                          |
+   | Unique challan number (ECH-2026-0000001), fine from    |
+   | the fine rules, due date (default 30 days), evidence,  |
+   | owner and vehicle details. Repeat offence = higher fine|
+   +--------------------------------------------------------+
+          |
+          v
+   +--------------------------------------------------------+
+   | STEP E  NOTIFY  (FR14)                                 |
+   | In-app notification for the owner + a simulated        |
+   | e-mail/SMS record (nothing is really sent).            |
+   +--------------------------------------------------------+
+          |
+          v
+   +--------------------------------------------------------+
+   | STEP F  PAY OR GO OVERDUE  (FR15)                      |
+   | Owner pays (simulated) -> transaction ID + receipt.    |
+   | Not paid by due date -> shown as OVERDUE automatically |
+   | and the owner is notified once.                        |
+   +--------------------------------------------------------+
+
+Safety rules built into detection
+  - A vehicle that entered the junction on green or yellow is NEVER flagged.
+  - If the light changed from yellow to red between two video frames while
+    the car was crossing, the driver gets the benefit of the doubt.
+  - An UNKNOWN signal state is NEVER treated as red. For videos, any time not
+    covered by your signal timeline is UNKNOWN.
+  - A short grace period (0.5 s for video) after red starts is ignored.
+  - Ambulances and fire trucks are exempt.
+  - Duplicates are blocked at every level: same vehicle in the same video,
+    re-uploading the same video, tracker ID switches, and one challan per
+    vehicle per 2-minute window.
+
+
+---------------------------------------------------------------------
+3. WHO CAN DO WHAT (ROLES)
+---------------------------------------------------------------------
+  Administrator     Everything below, plus: edit fines, cancel challans,
+                    seed demo data, add owners/vehicles, run overdue check,
+                    create user accounts.
+  Traffic Operator  All existing ASTRA pages + Violations page (detect,
+                    review, verify, reject) + view E-Challans dashboard.
+  Vehicle Owner     NEW. Only the Owner Portal: own vehicles, own challans,
+                    own evidence, notifications, pay, receipts, history.
+                    Cannot open any operator/admin page or API. Owners can
+                    never see another owner's records.
+
+
+---------------------------------------------------------------------
+4. ONE-TIME SETUP
+---------------------------------------------------------------------
+Step 1. Install the new Python packages (in the project venv):
+          pip install -r backend/requirements.txt
+        (adds: lap = tracker dependency, easyocr = OCR)
+
+Step 2. For SUMO-based detection only:
+          pip install eclipse-sumo traci
+        (or use your existing SUMO installation; `sumo` must be on PATH)
+
+Step 3. Check that the plate detector file exists:
+          backend/models/anpr/license_plate_yolo11n.pt
+        (already downloaded; EasyOCR downloads its own weights automatically
+         the first time a plate is read – needs internet once)
+
+Step 4. Start the backend (from the backend folder):
+          python -m uvicorn app.main:app --reload --port 8000
+
+Step 5. Start the frontend (from the frontend folder):
+          npm run dev
+        Open http://localhost:5173
+
+Step 6. Create the demo owners and vehicles (choose ONE way):
+        a) Log in as admin -> E-Challans -> "Seed demo owners & vehicles"
+        b) or from the backend folder:  python scripts/seed_demo_data.py
+        This creates 8 fictional owners, 13 vehicles and 8 owner logins:
+          owner1@example.com ... owner8@example.com   password: owner123
+        To remove them later:  python scripts/seed_demo_data.py --remove
+        (only records marked demo are deleted)
+
+        Useful demo plates:
+          KA01AB1234  Maruti Swift      -> owner1  Aarav Sharma (Demo)
+          KA05MN2024  Honda Activa      -> owner1
+          TN09BX4521  Hyundai Creta     -> owner2  Diya Iyer (Demo)
+          MH12DE4321  Tata Nexon EV     -> owner3  Kabir Mehta (Demo)
+          DL3CAB1234  Mahindra Scorpio  -> owner5  Vihaan Gupta (Demo)
+
+
+---------------------------------------------------------------------
+5. STEP-BY-STEP: DETECT VIOLATIONS FROM AN UPLOADED VIDEO
+---------------------------------------------------------------------
+A ready test clip is in samples/red_light_test/ (see its README.md).
+
+Step 1. Log in as Administrator or Traffic Operator.
+Step 2. Click "Violations" in the left menu.
+Step 3. In "Detect red-light violations", keep "Uploaded video" selected.
+Step 4. Click "Choose File" and select an MP4 / AVI / MOV (max 200 MB),
+        e.g. samples/red_light_test/red_light_test.mp4
+Step 5. Replace the JSON in the text box with your configuration.
+        For the sample clip use samples/red_light_test/config.json.
+
+        What the JSON means:
+          coordinates     "normalized" = 0..1 of frame width/height
+                          (0,0 = top-left, 1,1 = bottom-right)
+          zones           one entry per stop line / approach
+          name            any name, e.g. "north"
+          stop_line       two points [x1,y1],[x2,y2] of the stop line
+          before_point    any point on the side where cars WAIT
+                          (cars move from this side across the line)
+          margin          small dead-band around the line (0.01 = 1 %)
+          signal          what the traffic light showed, by video time:
+             timeline: {"mode":"timeline","intervals":[
+                         {"start":0,"end":10,"state":"green"},
+                         {"start":10,"end":13,"state":"yellow"},
+                         {"start":13,"end":31,"state":"red"}]}
+             cycle:    {"mode":"cycle","start":0,"phases":[
+                         {"state":"green","duration":30},
+                         {"state":"yellow","duration":3},
+                         {"state":"red","duration":27}]}
+             fixed:    {"mode":"fixed","state":"red","start":0,"end":60}
+          recording_started_at  optional real start time, e.g.
+                          "2026-11-22T09:30:00+05:30". If empty, the
+                          upload time is used as the base time.
+
+        Tip: open one frame of the video, note where the stop line is as a
+        fraction of width/height, and note when the light changes.
+
+Step 6. Leave Confidence at 0.4 (raise it if you get false detections).
+Step 7. Click "Run detection". The first run is slower (OCR model loads).
+Step 8. Read the result message, e.g.
+          "1 violation(s) detected, 1 stored, 0 duplicate(s) skipped"
+        If it mentions UNKNOWN signal frames, part of the video was not
+        covered by your timeline and was not enforced (this is intended).
+Step 9. Click the "All" filter to see the new violation(s). Click a row to
+        open evidence: scene, frame before crossing, vehicle crops and
+        plate crops.
+
+What happens next automatically:
+  - plate read confidently + found in registry -> "Challan issued"
+  - plate uncertain                            -> "Needs review" (section 7)
+  - plate not in registry                      -> "Unregistered" (section 8)
+
+
+---------------------------------------------------------------------
+6. STEP-BY-STEP: DETECT VIOLATIONS FROM SUMO / TraCI
+---------------------------------------------------------------------
+Step 1. Make sure demo data is seeded (section 4, step 6) so simulated
+        vehicles map to registered owners.
+Step 2. Violations page -> click "SUMO / TraCI".
+Step 3. Set:
+          Seed                      same seed = same simulation (repeatable)
+          Duration (s)              60–2400 simulated seconds
+          Red-light-ignoring share  fraction of vehicles told to ignore red
+                                    lights, e.g. 0.15 (so violations happen)
+          Show SUMO GUI             tick to watch it in sumo-gui
+Step 4. Click "Run detection" (takes a few seconds to a minute).
+Step 5. Violations appear with schematic evidence images (top-down view of
+        the junction, violator in pink, signal heads coloured).
+        Plates come from the demo registry; about 10 % are deliberately
+        unregistered so you can see that case too.
+Step 6. Most will already be "Challan issued". Running the same seed again
+        stores nothing new (duplicate protection).
+
+How SUMO detection works: every simulation second ASTRA asks TraCI for
+each vehicle's lane and the state of the vehicle's own signal link. A
+vehicle on an approach lane under RED that then moves into the junction
+while still RED is a violation. The detector does not use the list of
+"red-light-ignoring" vehicles – that list is only used to check accuracy.
+
+
+---------------------------------------------------------------------
+7. STEP-BY-STEP: REVIEW UNCERTAIN NUMBER PLATES
+---------------------------------------------------------------------
+A violation goes to review when: no plate was found, OCR confidence was
+below 0.80, the text is not a valid Indian registration, two readings
+disagree, or the OCR could not run.
+
+Step 1. Violations page -> "Needs review" filter (default view).
+Step 2. Click a row to expand it.
+Step 3. Look at the evidence images (click an image to open it full size)
+        and at "Review reasons" and the OCR text/confidence.
+Step 4a. If the vehicle really jumped the red light:
+         type the correct plate in the box (e.g. KA01AB1234) and click
+         "Verify plate". Spaces/lower case are fine.
+         -> owner lookup runs -> challan is issued if the owner is found.
+Step 4b. If it is a false alarm (e.g. emergency vehicle, wrong detection):
+         type a reason (min. 3 characters) and click "Reject".
+
+Accepted plate formats:
+  Standard  KA 01 AB 1234, DL 3C AB 1234, TN 09 Z 5678
+  BH series 22 BH 1234 AB
+Every action is recorded in the violation history with who did it.
+
+
+---------------------------------------------------------------------
+8. STEP-BY-STEP: HANDLE UNREGISTERED VEHICLES
+---------------------------------------------------------------------
+Step 1. Violations page -> "Unregistered" filter.
+Step 2. If the plate was mis-read, correct it with "Verify plate".
+Step 3. If the plate is right but the vehicle is missing from the registry,
+        an administrator adds it through the API (http://localhost:8000/docs):
+          POST /api/registry/owners    {"name": "...", "email": "...", "phone": "..."}
+          POST /api/registry/vehicles  {"registration_number": "KA02CD4567",
+                                        "owner_id": "<owner_id from above>",
+                                        "vehicle_class": "Car"}
+Step 4. Back on the violation, click "Retry owner lookup".
+        -> owner found -> challan issued automatically.
+
+
+---------------------------------------------------------------------
+9. STEP-BY-STEP: ADMIN E-CHALLAN DASHBOARD
+---------------------------------------------------------------------
+Open "E-Challans" in the left menu.
+
+Top cards     total violations (and how many need review / unregistered),
+              challans issued, amount collected, overdue count/amount.
+Chart         violations (blue) and challans (purple) for the last 14 days.
+Top offenders vehicles with the most challans.
+Payments      simulated payments: count, declined, by method, total.
+
+Change fines (Administrator only)
+  Step 1. In "Fine configuration" edit Fine ₹, Repeat ₹ (second and later
+          offences of the same vehicle) or "Due in ... days".
+  Step 2. Click "Save". New challans use the new values; existing
+          challans keep the amount they were issued with.
+  Default: ₹1000, repeat ₹5000, due in 30 days. These are demo values –
+  set them to the fines notified in your state.
+
+Find a challan
+  Use the status buttons (All / Unpaid / Overdue / Paid / Cancelled) or
+  type a plate or challan number in the search box. Click a row to see
+  evidence and, if paid, transaction ID and receipt number.
+
+Cancel a challan (Administrator only, unpaid challans only)
+  Step 1. Open the challan row.
+  Step 2. Enter a cancellation reason and click "Cancel challan".
+  The owner is notified automatically.
+
+Run the overdue check now (Administrator only)
+  Click "Run overdue check". (It also runs automatically every 15 minutes.)
+
+
+---------------------------------------------------------------------
+10. STEP-BY-STEP: VEHICLE OWNER PORTAL
+---------------------------------------------------------------------
+Step 1. Log out, then log in as an owner, e.g.
+          owner1@example.com / owner123
+        Owners are taken straight to "My Vehicles & E-Challans". If they try
+        to open any operator page they are sent back to their portal.
+Step 2. Top cards: number of vehicles, unpaid challans and amount
+        outstanding, overdue challans, paid challans.
+        A red banner appears if anything is overdue.
+Step 3. "My vehicles": each vehicle with its challan count and amount due.
+Step 4. "Notifications": new challans, payments, overdue reminders,
+        cancellations. Click "Mark all read" to clear the counter.
+Step 5. "My challans": use All / Unpaid / Overdue / Paid filters.
+        Click "Evidence" to see the photos of the violation.
+Step 6. Pay a challan (SIMULATED – no money moves, no card details asked):
+          a) Click the green "Pay ₹..." button.
+          b) Choose UPI, Card or Net banking.
+          c) (Optional) tick "Simulate a declined payment" to demo a failure.
+          d) Click "Confirm payment".
+          -> "Payment successful" with Transaction ID and Receipt number.
+          -> Challan becomes PAID, notification "Payment received" appears.
+Step 7. Receipt: open "Evidence" on a paid challan -> the receipt is shown
+        below. Click "Print / save as PDF" to print or save it.
+Step 8. "Payment history" at the bottom lists every attempt (successful and
+        declined) with date, amount, method, transaction ID and receipt.
+
+New owner logins (Administrator): create the owner record first
+(section 8, step 3), then create the login via
+  POST /api/auth/users  {"name": "...", "email": "...", "password": "...",
+                         "role": "Vehicle Owner", "owner_id": "<owner_id>"}
+
+
+---------------------------------------------------------------------
+11. FULL DEMO SCRIPT (ABOUT 10 MINUTES)
+---------------------------------------------------------------------
+ 1. Start backend and frontend (section 4, steps 4–5).
+ 2. Log in as admin@astra.ai (your admin password from .env).
+ 3. E-Challans -> "Seed demo owners & vehicles".
+ 4. Violations -> Uploaded video -> choose
+    samples/red_light_test/red_light_test.mp4, paste
+    samples/red_light_test/config.json -> Run detection.
+    Expect: 1 violation (red car at 17.6 s); a car that crossed on green at
+    about 6 s is correctly NOT flagged.
+ 5. It appears under "Needs review" (toy car has no Indian plate).
+    Open it, view evidence, type KA01AB1234 -> "Verify plate".
+    Status becomes "Challan issued".
+ 6. Upload the same video again -> "1 duplicate skipped" (no duplicate).
+ 7. Violations -> SUMO / TraCI -> seed 101, duration 600, share 0.15 ->
+    Run detection. Several more challans are issued; some are
+    "Unregistered".
+ 8. E-Challans: show the cards, chart, top offenders (note a "repeat"
+    fine of ₹5000), change a fine and save.
+ 9. Log out. Log in as owner1@example.com / owner123.
+10. Show notifications, vehicles, the challan with evidence.
+11. Pay it with UPI -> show transaction ID, receipt, payment history.
+12. Log back in as admin -> E-Challans: "Collected" now shows the payment.
+
+FASTER, FULLY AUTOMATIC VERSION (no manual plate entry)
+Use samples/red_light_real/ instead of samples/red_light_test/ in step 4:
+  video  samples/red_light_real/red_light_real.mp4
+  config samples/red_light_real/config.json
+  - The video shows a traffic light turning green -> yellow -> red.
+  - The red car carrying demo plate KA 01 AB 1234 crosses the stop line on red.
+  - The plate is read automatically (confidence 0.998), the owner (owner1) is
+    found, and the challan is issued at once, with no manual review needed.
+  - Skip step 5 and continue from step 6.
+  See samples/red_light_real/README.md for what is real and what is composited.
+
+
+---------------------------------------------------------------------
+12. STATUS REFERENCE
+---------------------------------------------------------------------
+Violation status
+  detected        just stored, plate not processed yet
+  pending_review  plate uncertain – shown as "Needs review"
+  verified        plate confirmed (automatically or by an operator)
+  unregistered    plate not found in the owner registry
+  challan_issued  challan created (or linked to an existing one)
+  rejected        dismissed by an operator, with reason
+
+Challan status (what owners and admins see)
+  unpaid          issued, before due date
+  overdue         unpaid AND past due date (calculated automatically)
+  paid            paid (simulated), has transaction ID + receipt
+  cancelled       cancelled by an administrator, with reason
+
+
+---------------------------------------------------------------------
+13. CONFIGURATION SETTINGS
+---------------------------------------------------------------------
+All optional; add to backend/.env only if you want to change a default
+(the full list is in backend/.env.example). Restart the backend after
+changing them.
+
+  RED_LIGHT_GRACE_SECONDS=0.5          ignore crossings in first 0.5 s of red (video)
+  SUMO_RED_LIGHT_GRACE_SECONDS=0       same for SUMO
+  VIOLATION_EXEMPT_CLASSES=Ambulance,Fire Truck
+  VIOLATION_VIDEO_ANALYSE_FPS=10       frames per second analysed in videos
+  VIOLATION_VIDEO_MAX_FRAMES=3000      upper limit per video
+  PLATE_DETECTOR_PATH=models/anpr/license_plate_yolo11n.pt
+  OCR_MIN_CONFIDENCE=0.80              below this -> manual review
+  OCR_GPU=false                        true if a CUDA GPU should be used
+  ANPR_ENABLED=true                    false = every video plate goes to review
+  CHALLAN_FINE_AMOUNTS={"red_light": 1000}   initial fine (admin can change later)
+  CHALLAN_DUE_DAYS=30
+  CHALLAN_AUTO_ISSUE=true              false = staff issue challans manually
+  CHALLAN_DUPLICATE_WINDOW_SECONDS=120 same vehicle within this time = 1 challan
+  OVERDUE_CHECK_MINUTES=15
+  EVIDENCE_DIR=storage/evidence        evidence images (never public)
+  DEMO_OWNER_PASSWORD=owner123
+
+
+---------------------------------------------------------------------
+14. TROUBLESHOOTING
+---------------------------------------------------------------------
+"0 violations detected" on a video
+  - Is the stop line in the right place and is before_point on the side
+    where cars wait? Cars must move from that side across the line.
+  - Does the red interval cover the time the car crosses? Times outside the
+    timeline are UNKNOWN and never enforced.
+  - Did the car cross within the 0.5 s grace period after red started?
+  - Your model may not detect vehicles in very crowded, small or unusual
+    footage; try a clearer video or a lower confidence (e.g. 0.3).
+
+Everything goes to "Needs review"
+  - Normal for low-resolution video or plates that are far away/blurred.
+  - First run needs internet once for EasyOCR to download its weights.
+
+"SUMO violation script not found" / SUMO run fails
+  - Install SUMO (pip install eclipse-sumo traci) and make sure `sumo`
+    runs from the same terminal as the backend.
+
+All SUMO violations are "Unregistered"
+  - Seed the demo data first (section 4, step 6).
+
+Owner sees "Staff access required"
+  - Correct behaviour: owners can only use the Owner Portal.
+
+Evidence images do not load
+  - They require login; refresh the page or log in again. Check that the
+    backend's EVIDENCE_DIR folder exists and was not deleted.
+
+Run the automated tests (uses an in-memory database, not Atlas):
+  cd backend
+  pip install -r requirements-dev.txt
+  python -m pytest tests -q
+
+
+---------------------------------------------------------------------
+15. WHERE THE CODE LIVES
+---------------------------------------------------------------------
+backend/app/enforcement/
+  signal.py         signal states and video signal timelines (FR10)
+  red_light.py      the red-light rule used by video and SUMO (FR10)
+  video.py          video pipeline: YOLO11 + ByteTrack + evidence (FR10)
+  sumo.py           TraCI monitor + schematic evidence (FR10)
+  evidence.py       evidence image storage
+  store.py          saving violations, duplicate protection
+  plates.py         Indian plate formats and OCR corrections (FR11)
+  anpr.py           plate detector + EasyOCR (FR11)
+  pipeline.py       plate -> review -> owner -> challan flow
+  registry.py       owner/vehicle lookup (FR12)
+  demo_data.py      synthetic demo owners, vehicles, logins (FR12)
+  fines.py          violation types and fine rules (FR13)
+  challans.py       challan creation and cancellation (FR13)
+  notifications.py  in-app + simulated e-mail/SMS (FR14)
+  payments.py       overdue + simulated payments + receipts (FR15)
+backend/app/routers/
+  violations.py, registry.py, challans.py, owner.py, enforcement_dashboard.py
+sumo/scripts/detect_red_light_violations.py   SUMO run used by the API
+backend/scripts/seed_demo_data.py             demo data seeding
+backend/tests/                                automated tests (FR10–FR15)
+frontend/src/pages/
+  Violations.jsx, Challans.jsx, OwnerDashboard.jsx, OwnerPayments.jsx
+frontend/src/OwnerLayout.jsx                  owner portal frame
+samples/red_light_test/                       test video + config
+
+Adding a new violation type later (e.g. wrong-way, no helmet): write a
+new rule that produces violation events like red_light.py does, add the
+type to VIOLATION_TYPES in fines.py – plate reading, owner lookup,
+challans, notifications and payments are reused unchanged.
